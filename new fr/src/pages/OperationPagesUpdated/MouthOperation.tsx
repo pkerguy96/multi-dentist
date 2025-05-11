@@ -2,22 +2,20 @@ import {
   Box,
   Button,
   ButtonGroup,
-  Checkbox,
   FormControl,
   FormHelperText,
+  IconButton,
   InputLabel,
   MenuItem,
   Paper,
   Select,
   TextField,
+  Tooltip,
   Typography,
 } from "@mui/material";
-import { useEffect, useState, useMemo, Suspense, lazy } from "react";
-import { useNavigate, useParams } from "react-router";
+import { useEffect, useState, useMemo } from "react";
 import "../../styles.css";
-
 import { Controller, useForm } from "react-hook-form";
-import FormControlLabel from "@mui/material/FormControlLabel";
 import { AxiosError } from "axios";
 import Table from "@mui/material/Table";
 import TableBody from "@mui/material/TableBody";
@@ -25,37 +23,42 @@ import TableCell from "@mui/material/TableCell";
 import TableContainer from "@mui/material/TableContainer";
 import TableHead from "@mui/material/TableHead";
 import TableRow from "@mui/material/TableRow";
-
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
-
 import AddIcon from "@mui/icons-material/Add";
 import { Link } from "react-router-dom";
-
-/* import useGlobalStore from "../zustand/useGlobalStore"; */
-
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { CliniquerensignementProps } from "./Cliniquerensignement";
 import { Patient } from "../AddPatientForm";
-import getGlobal from "../../hooks/getGlobal";
 import addGlobal from "../../hooks/addGlobal";
 import {
-  CACHE_KEY_PATIENTS,
   CACHE_KEY_PatienttinyData,
+  CACHE_KEY_Teeth,
   Older,
   Younger,
 } from "../../constants";
 import { useSnackbarStore } from "../../zustand/useSnackbarStore";
-import patientAPIClient, {
+import {
   OnlyPatientData,
   patientTinyDataAPIClient,
 } from "../../services/PatientService";
 import { useGlobalOperationPreference } from "../../hooks/getOperationPrefs";
-import operationApiClient, { Operation } from "../../services/OperationService";
+import operationApiClient, {
+  Operation,
+  teethOperationApiClient,
+  updateStoreTeethApiClient,
+} from "../../services/OperationService";
 import getGlobalById from "../../hooks/getGlobalById";
+import CheckAction from "../../components/CheckAction";
+import KeyboardBackspaceOutlinedIcon from "@mui/icons-material/KeyboardBackspaceOutlined";
 
 const getColor = (colors) => {
-  const randomColor = Math.floor(Math.random() * 16777215).toString(16);
-  if (colors.includes(randomColor)) return getColor(colors);
+  let randomColor;
+  do {
+    randomColor = Math.floor(Math.random() * 16777215)
+      .toString(16)
+      .padStart(6, "0"); // ensures 6 digits
+  } while (colors.includes("#" + randomColor));
+
   return "#" + randomColor;
 };
 
@@ -67,6 +70,7 @@ const MouthOperation: React.FC<CliniquerensignementProps> = ({
   const operation_id = queryParams.get("operation_id");
   const patient_id = queryParams.get("id");
   const addMutation = addGlobal({} as Operation, operationApiClient);
+  const updateMutation = addGlobal({} as any, updateStoreTeethApiClient);
   const { data, isLoading } = getGlobalById(
     {} as OnlyPatientData,
     [CACHE_KEY_PatienttinyData, patient_id],
@@ -77,17 +81,22 @@ const MouthOperation: React.FC<CliniquerensignementProps> = ({
   const { data: OperationList, isLoading: isloading2 } =
     useGlobalOperationPreference();
 
+  const { data: OpTeeth, isLoading: isLoading2 } = getGlobalById(
+    {} as any,
+    CACHE_KEY_Teeth,
+    teethOperationApiClient,
+    undefined,
+    parseInt(operation_id)
+  );
   const { showSnackbar } = useSnackbarStore();
-  const navigate = useNavigate();
+
   const [specificPatient, setSpecificPatient] = useState<Patient | undefined>(
     undefined
   );
   const [globalCurrentColor, setGlobalCurrentColor] = useState(getColor([]));
   const [globalTeeth, setGlobalTeeth] = useState([]);
   const [globalData, setGlobalData] = useState([]);
-
   const [clientage, setClientAge] = useState("");
-  console.log(globalData);
 
   const { handleSubmit, getValues, setValue, control, watch } = useForm({});
   const isFullyPaid = watch("fullyPaid");
@@ -130,8 +139,18 @@ const MouthOperation: React.FC<CliniquerensignementProps> = ({
       }
     }
   }, [data]);
+  const create = CheckAction(() => {
+    if (!OpTeeth) return;
 
-  if (isLoading) {
+    const coloredTeeth = OpTeeth.map((item) => ({
+      ...item,
+      color: getColor(globalCurrentColor),
+    }));
+
+    setGlobalData(coloredTeeth);
+  }, OpTeeth);
+
+  if (isLoading || isLoading2) {
     return <LoadingSpinner />;
   }
   const onSubmit = (data: any) => {
@@ -143,7 +162,7 @@ const MouthOperation: React.FC<CliniquerensignementProps> = ({
       };
     });
 
-    const validData = {
+    const validData: any = {
       operation_id: operation_id,
       operations: newData,
       is_paid: isFullyPaid,
@@ -156,11 +175,25 @@ const MouthOperation: React.FC<CliniquerensignementProps> = ({
 
     if (!validData.operations || validData.operations.length === 0) {
       showSnackbar("Veuillez ajouter au moins une opération.", "error");
-    } else {
+    } else if (create) {
       addMutation.mutateAsync(validData, {
         onSuccess: (data) => {
-          /* setIds(specificPatient?.id, undefined, data?.operation_id); */
           showSnackbar("Opération créée avec succès", "success");
+          onNext();
+        },
+        onError: (error: any) => {
+          const message =
+            error instanceof AxiosError
+              ? error.response?.data?.message
+              : error.message;
+
+          showSnackbar(`Oops ${message}`, "error");
+        },
+      });
+    } else {
+      updateMutation.mutateAsync(validData, {
+        onSuccess: (data) => {
+          showSnackbar("Opération modified avec succès", "success");
           onNext();
         },
         onError: (error: any) => {
@@ -203,22 +236,23 @@ const MouthOperation: React.FC<CliniquerensignementProps> = ({
       >
         {/**top bar */}
         <Box className="flex flex-col justify-center gap-4">
-          <Box className="flex flex-col md:flex-row md:items-center md:justify-between ">
+          <Box className="flex flex-col md:flex-row md:items-center md:justify-between relative">
+            <Tooltip title="Retour">
+              <IconButton onClick={onBack}>
+                <KeyboardBackspaceOutlinedIcon
+                  color="primary"
+                  className="pointer-events-none"
+                  fill="currentColor"
+                />
+              </IconButton>
+            </Tooltip>
+
             <Typography
-              className="px-2 flex justify-center text-xl font-bold  text-gray-400"
+              className="text-xl font-bold text-gray-400 text-center md:ml-auto flex-1"
               variant="h6"
             >
               Veuillez sélectionner les dents que vous souhaitez opérer
             </Typography>
-            <Button
-              component={Link}
-              to={`/Patients/Details/${patient_id}`}
-              variant="contained"
-              color="primary"
-              size="small"
-            >
-              Historique des opérations
-            </Button>
           </Box>
 
           <ButtonGroup
@@ -267,7 +301,7 @@ const MouthOperation: React.FC<CliniquerensignementProps> = ({
               fill="none"
               xmlns="http://www.w3.org/2000/svg"
             >
-              {(clientage === "older" ? Older : Younger).map((p, i) => (
+              {(clientage === "older" ? Older : Younger).map((p: any, i) => (
                 <polygon
                   key={i}
                   className="cursor-pointer"
@@ -368,10 +402,10 @@ const MouthOperation: React.FC<CliniquerensignementProps> = ({
                 <TableHead>
                   <TableRow className="bg-gray-300 !rounded-2xl	sticky top-0 z-10">
                     <TableCell>
-                      <strong>Operation name</strong>
+                      <strong>Nom de l'opération</strong>
                     </TableCell>
                     <TableCell className="w-64">
-                      <strong>Price</strong>
+                      <strong>Prix</strong>
                     </TableCell>
                   </TableRow>
                 </TableHead>
@@ -442,7 +476,7 @@ const MouthOperation: React.FC<CliniquerensignementProps> = ({
               </Table>
             </TableContainer>
             <Box className="w-full flex flex-wrap items-center -mt-4 font-black text-sm">
-              <span className="block flex-1 p-4">Total Price:</span>
+              <span className="block flex-1 p-4">Prix ​​total :</span>
               <span className="block w-64 p-4 ps-8">
                 {new Intl.NumberFormat("en-US", {
                   style: "currency",

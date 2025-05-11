@@ -4,9 +4,17 @@ import { CACHE_KEY_RecurringOperations } from "../../constants";
 import DataTable from "../DataTable";
 import getGlobalv2 from "../../hooks/getGlobalv2";
 import useUserRoles from "../../zustand/UseRoles";
-
+import OperationSessions from "../OperationSessions";
+import { useState } from "react";
+type OperationSelection = {
+  operation_id: number;
+  patient_id: number;
+};
 const IncompletedOperations = () => {
   const { can } = useUserRoles();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [selectedOperationId, setSelectedOperationId] =
+    useState<OperationSelection | null>(null);
 
   const columns = [
     {
@@ -32,14 +40,7 @@ const IncompletedOperations = () => {
         sort: true,
       },
     },
-    {
-      name: "xray_types",
-      label: "Radiographies",
-      options: {
-        filter: true,
-        sort: true,
-      },
-    },
+
     {
       name: "operation_names",
       label: "Opération supplémentaire",
@@ -76,6 +77,16 @@ const IncompletedOperations = () => {
       searchQuery,
       undefined
     );
+  const handleRowClick = (rowData: any) => {
+    const data = {
+      operation_id: rowData[0],
+      patient_id: rowData[5],
+    };
+    console.log(data);
+
+    setSelectedOperationId(data);
+    setIsModalOpen(true);
+  };
   //TODO  invalidate cache once the operation completed and its reocuring
   return (
     <>
@@ -89,8 +100,16 @@ const IncompletedOperations = () => {
             options={{
               searchPlaceholder: "Rechercher une opération ",
               selectableRows: "none",
+              onRowClick: handleRowClick,
             }}
           />
+          {isModalOpen && selectedOperationId !== null && (
+            <OperationSessions
+              open={isModalOpen}
+              onClose={() => setIsModalOpen(false)}
+              operation={selectedOperationId}
+            />
+          )}
         </Box>
       ) : (
         <div style={{ textAlign: "center", color: "red", marginTop: "20px" }}>

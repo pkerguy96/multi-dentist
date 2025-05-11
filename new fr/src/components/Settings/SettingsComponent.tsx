@@ -51,7 +51,7 @@ const SettingsComponent = () => {
       permissions: ["doctor", "access_op_settings"],
     },
     {
-      name: "Gestion des radiographie",
+      name: "Gestion des actes dentaires",
       url: "/Settings/Xrays",
       icon: LocalHospitalOutlinedIcon,
       checkPermissions: true,

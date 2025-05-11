@@ -27,6 +27,9 @@ export const getuserlocationSettingsApiClient = new APIClient<LocationPref>(
 export const OperationPrefApiClient = new APIClient<OperationPreference>(
   "OperationPreferences"
 );
+export const TeethOperationPrefApiClient = new APIClient<OperationPreference>(
+  "TeethPreferences"
+);
 export const OperationsPrefApiClient = new APIClient<OperationPreference[]>(
   "getOperationPrefs"
 );

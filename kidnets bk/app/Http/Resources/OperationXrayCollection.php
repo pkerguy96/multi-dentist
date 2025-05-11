@@ -19,7 +19,7 @@ class OperationXrayCollection extends ResourceCollection
                 "id" => $xray->id,
                 'operation_id' => $xray->operation_id,
                 'patient_id' => $xray->patient_id,
-                'xray_type' => $xray->xray_name,
+                'xray_type' => $xray->operation_name,
 
                 'price' => (int) $xray->price,
             ];

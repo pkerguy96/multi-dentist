@@ -43,5 +43,7 @@ export const modifytreatmentApiClient = new APIClient<any>(
 export const PayementVerificationApiClient = new APIClient<any>(
   "PayementVerificationCheckout"
 );
+export const teethOperationApiClient = new APIClient<any>("getTeeths");
+export const updateStoreTeethApiClient = new APIClient<any>("updateStore");
 export default operationApiClient;
 export const OperationSpecificDetails = new APIClient<any>("getOperationData");

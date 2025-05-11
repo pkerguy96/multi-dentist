@@ -20,8 +20,10 @@ use App\Models\Operation;
 use App\Models\operation_detail;
 use App\Events\MyEvent;
 use App\Models\Notification;
+use App\Models\OperationExtra;
 use App\Models\Product;
 use App\Models\ProductOperationConsumables;
+use App\Models\TeethOperationPrefs;
 use App\Models\User;
 use App\Models\WaitingRoom;
 use App\Traits\UserRoleCheck;
@@ -113,9 +115,9 @@ class XrayController extends Controller
             if (!Operation::where('doctor_id', $doctorId)->where('id', $id)->exists()) {
                 return $this->error(null, 'xrays operation dosnt exist', 500);
             }
-            $xray = Xray::where('doctor_id', $doctorId)->where('operation_id', $id)->get();
+            $xray = operation_detail::where('operation_id', $id)->get();
             if (!$xray) {
-                return $this->error(null, 'no xray', 500);
+                return $this->error(null, 'no operation', 500);
             }
             return new OperationXrayCollection($xray);
         } catch (\Throwable $th) {
@@ -147,7 +149,7 @@ class XrayController extends Controller
 
 
             $operation = Operation::where('doctor_id', $doctorId)->where('id', $id)->firstOrFail(); // Fetch the operation to adjust total_cost
-            $existingXrays = Xray::where('doctor_id', $doctorId)->where('operation_id', $id)->get(); // Fetch existing x-rays for the operation
+            $existingXrays = operation_detail::where('operation_id', $id)->get(); // Fetch existing x-rays for the operation
 
 
             // Step 3: Identify deleted, new, and updated x-rays
@@ -162,14 +164,14 @@ class XrayController extends Controller
             Log::info('Deleted X-rays total price', ['total_price' => $deletedXrayTotalPrice]); // Log the deducted price
             $operation->total_cost = 0;
             // Step 5: Delete the identified x-rays
-            Xray::destroy($deletedXrays->pluck('id')->toArray());
+            operation_detail::destroy($deletedXrays->pluck('id')->toArray());
             Log::info('Deleted X-rays', ['ids' => $deletedXrays->pluck('id')->toArray()]);
 
             // Step 6: Update existing x-rays
             foreach ($updatedXrays as $xray) {
-                Xray::where('id', $xray['id'])->update([
+                operation_detail::where('id', $xray['id'])->update([
                     'price' => $xray['price'],
-                    'xray_type' => $xray['xray_type'],
+                    'operation_name' => $xray['xray_type'],
                 ]);
                 Log::info('Updated X-ray', ['id' => $xray['id'], 'data' => $xray]);
                 $operation->total_cost += $xray['price'];
@@ -178,10 +180,10 @@ class XrayController extends Controller
             // Step 7: Add new x-rays and calculate their total price
             /*       $newXrayTotalPrice = 0; */ // Initialize total price for new x-rays
             foreach ($newXrays as $xray) {
-                operation_detail::create([
-
+                OperationExtra::create([
+                    'doctor_id' => $doctorId,
                     'operation_id' => $id,
-                    'operation_name' => $xray['xray_type'],
+                    'operation_type' => $xray['xray_type'],
                     'price' => $xray['price'],
                 ]);
                 /*  $newXrayTotalPrice += $xray['price']; */ // Add new x-ray's price to the total
@@ -281,14 +283,7 @@ class XrayController extends Controller
     {
         $doctorId = $this->checkUserRole();
         // Step 1: Create a new operation
-        $operation = Operation::create([
-            'doctor_id' => $doctorId,
-            'patient_id' => $request->input('patient_id'),
-            'total_cost' => 0, // Initialize total_cost to 0
-            'is_paid' => 0,
-            'note' => null,
-
-        ]);
+        $operation = Operation::where('id', $request->operation_id)->first();
         // Step 2: Handle treatment status
         $isDone = $request->input('treatment_isdone', 0);
 

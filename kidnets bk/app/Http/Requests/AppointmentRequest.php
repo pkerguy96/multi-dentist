@@ -22,7 +22,7 @@ class AppointmentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'type' => 'required|in:usual,phone',
+            /* 'type' => 'required|in:usual,phone', */
             'patient_id' => 'required_if:type,usual|integer|exists:patients,id|nullable',
             'phone' => 'nullable|required_if:type,phone|string|max:20',
             'date' => ['required', 'date', 'after_or_equal:today'],
@@ -33,8 +33,8 @@ class AppointmentRequest extends FormRequest
     public function messages()
     {
         return [
-            'type.required' => 'Le type de rendez-vous est requis.',
-            'type.in' => 'Le type de rendez-vous doit être "usual" ou "phone".',
+            /*   'type.required' => 'Le type de rendez-vous est requis.',
+            'type.in' => 'Le type de rendez-vous doit être "usual" ou "phone".', */
             'patient_id.required_if' => 'Le patient est requis pour un rendez-vous en personne.',
             'patient_id.exists' => 'Le patient sélectionné est invalide.',
             'phone.required_if' => 'Le numéro de téléphone est requis pour un rendez-vous téléphonique.',

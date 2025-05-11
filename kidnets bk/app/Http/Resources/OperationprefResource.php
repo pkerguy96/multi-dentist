@@ -16,9 +16,10 @@ class OperationprefResource extends JsonResource
     {
         return [
             "id" => $this->id,
+            'name' => $this->operation_type,
             "operation_type" => $this->operation_type,
             "code" => $this->code,
-            "price" => $this->price,
+            "price" => (int) $this->price,
 
         ];
     }

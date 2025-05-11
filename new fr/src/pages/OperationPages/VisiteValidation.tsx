@@ -166,70 +166,45 @@ const VisiteValidation: React.FC<CliniquerensignementProps> = ({
 
     try {
       // Check if operation_id exists
-      if (withxrays !== null) {
-        const formData = {
-          operation_id: operation_id,
-          patient_id: patient_id,
-          treatment_isdone: isdone ?? 1,
-          consomables: consomables,
-          rows: operations.map((e) => {
-            const { id, ...rest } = e;
-            if (id)
-              if (String(id).startsWith("data-")) {
-                rest.id = String(id).replace(/^data-(\d+)$/, "$1"); // Keep only the number for "data-"
-              }
-            return rest;
-          }),
-        };
 
-        // If operation_id exists, update the operation
-        await updateMutation.mutateAsync(
-          {
-            data: formData,
-            id: Number(operation_id),
-          },
-          {
-            onSuccess: (data) => {
-              queryClient.clear();
-              showSnackbar(
-                "L'opération a été enregistrée avec succès",
-                "success"
-              );
+      const formData = {
+        operation_id: operation_id,
+        patient_id: patient_id,
+        treatment_isdone: isdone ?? 1,
+        consomables: consomables,
+        rows: operations.map((e) => {
+          const { id, ...rest } = e;
+          if (id)
+            if (String(id).startsWith("data-")) {
+              rest.id = String(id).replace(/^data-(\d+)$/, "$1"); // Keep only the number for "data-"
+            }
+          return rest;
+        }),
+      };
 
-              navigate("/Patients");
-            },
-            onError: (error: any) => {
-              const message = error.response?.data?.error;
-
-              showSnackbar(message, "error");
-            },
-          }
-        );
-      } else {
-        const formData = {
-          patient_id: Number(patient_id),
-          treatment_isdone: isdone ?? 1,
-          consomables: consomables,
-          rows: operations,
-        };
-        await addmutation.mutateAsync(formData, {
+      // If operation_id exists, update the operation
+      await updateMutation.mutateAsync(
+        {
+          data: formData,
+          id: Number(operation_id),
+        },
+        {
           onSuccess: (data) => {
-            queryClient.invalidateQueries({
-              queryKey: ["operation"],
-              exact: false,
-            });
+            queryClient.clear();
             showSnackbar(
               "L'opération a été enregistrée avec succès",
               "success"
             );
+
             navigate("/Patients");
           },
-          onError: (error) => {
+          onError: (error: any) => {
             const message = error.response?.data?.error;
+
             showSnackbar(message, "error");
           },
-        });
-      }
+        }
+      );
     } catch (error) {
       console.error("Unexpected error:", error);
     }

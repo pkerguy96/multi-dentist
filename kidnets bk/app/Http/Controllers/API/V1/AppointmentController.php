@@ -74,7 +74,7 @@ class AppointmentController extends Controller
 
         // Check if it's a phone appointment
         $isPhoneAppointment = $request->input('type') === 'phone';
-
+ 
         if ($isPhoneAppointment) {
             Log::info('Processing Phone Appointment', ['phone' => $request->input('phone')]);
 

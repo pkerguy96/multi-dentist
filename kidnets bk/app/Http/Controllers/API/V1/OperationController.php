@@ -105,9 +105,7 @@ class OperationController extends Controller
                 'operationdetails' => function ($query) {
                     $query->select('operation_id', 'operation_name'); // Include operation_id
                 },
-                'xray' => function ($query) {
-                    $query->select('operation_id', 'xray_type'); // Include operation_id
-                },
+
                 'patient' => function ($query) {
                     $query->withTrashed()->select('id', 'nom', 'prenom'); // Include trashed patients
                 },
@@ -238,7 +236,8 @@ class OperationController extends Controller
         $data = Operation::with([
             'patient:id,nom,prenom,cin',
             'operationdetails',
-            'xray',
+
+            'ExtraOperation',
             'bloodType',
             'ordonance',
             'ordonance.OrdonanceDetails',
@@ -263,7 +262,7 @@ class OperationController extends Controller
 
             $data = $request->all();
             $validator = validator($request->all(), [
-                'is_paid' => 'required|boolean',
+
                 'note' => 'nullable|string',
                 'patient_id' => 'required|integer|exists:patients,id',
                 'amount_paid' => 'nullable|numeric',
@@ -272,8 +271,7 @@ class OperationController extends Controller
                 'operations.*.amount_paid' => 'nullable|numeric|between:0,9999999.99',
                 'operations.*.tooth_id' => 'required|array',
             ], [
-                'is_paid.required' => 'Le champ "is_paid" est requis.',
-                'is_paid.boolean' => 'Le champ "is_paid" doit être un booléen.',
+
                 'note.string' => 'Le champ "note" doit être une chaîne de caractères.',
                 'patient_id.required' => 'Le champ "patient_id" est requis.',
                 'patient_id.integer' => 'Le champ "patient_id" doit être un entier.',
@@ -303,7 +301,7 @@ class OperationController extends Controller
             DB::beginTransaction();
             $operation = Operation::findorfail($request->operation_id);
             $operation->update([
-                'is_paid' => $data['is_paid'],
+                'note' => $data['note'] ?? null,
                 'total_cost' => $calculator,
             ]);
 
@@ -330,5 +328,95 @@ class OperationController extends Controller
                 'errors' => $e->getMessage()
             ], 404);
         }
+    }
+    public function updateStore(Request $request)
+    {
+        try {
+            $doctorId = $this->checkUserRole(['superadmin']);
+
+            $validator = validator($request->all(), [
+                'operation_id' => 'required|integer|exists:operations,id',
+                'note' => 'nullable|string',
+                'patient_id' => 'required|integer|exists:patients,id',
+                'amount_paid' => 'nullable|numeric',
+                'operations' => 'required|array',
+                'operations.*.price' => 'required|numeric|between:0,9999999.99',
+                'operations.*.tooth_id' => 'required|array',
+            ], [
+                'operation_id.required' => 'Le champ "operation_id" est requis.',
+                'operation_id.exists' => 'L\'opération sélectionnée n\'existe pas.',
+                'patient_id.required' => 'Le champ "patient_id" est requis.',
+                'patient_id.exists' => 'Le patient sélectionné n\'existe pas.',
+                'operations.required' => 'Le champ "operations" est requis.',
+                'operations.*.price.required' => 'Le champ "price" est requis.',
+                'operations.*.tooth_id.required' => 'Le champ "tooth_id" est requis.',
+            ]);
+
+            if ($validator->fails()) {
+                throw new ValidationException($validator);
+            }
+
+            $data = $request->json()->all();
+            $operation = Operation::findOrFail($request->operation_id);
+
+            DB::beginTransaction();
+
+            // Recalculate total
+            $total = collect($data['operations'])->sum('price');
+
+            // Update operation
+            $operation->update([
+                'total_cost' => $total,
+                'note' => $data['note'] ?? null,
+
+
+            ]);
+
+            // Remove old details
+            Operation_Detail::where('operation_id', $operation->id)->delete();
+
+            // Recreate new details
+            foreach ($data['operations'] as $item) {
+                Operation_Detail::create([
+                    'operation_id' => $operation->id,
+                    'tooth_id' => implode(',', $item['tooth_id']),
+                    'type' => $item['operation_type'],
+                    'operation_name' => $item['operation_type'],
+                    'price' => $item['price'],
+                ]);
+            }
+
+            DB::commit();
+
+            return response()->json([
+                'message' => 'Operation updated successfully.',
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Oops something went wrong',
+                'errors' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getTeeths($id)
+    {
+        $doctorId = $this->checkUserRole(['superadmin']);
+
+        $details = operation_detail::where('operation_id', $id)
+            ->get(['id', 'tooth_id', 'operation_name', 'price']);
+
+
+        $transformed = $details->map(function ($item) {
+            return [
+                'id' => $item->id,
+                'teeth' => array_map('intval', explode(',', $item->tooth_id)),
+                'operation' => $item->operation_name,
+                'price' => floatval($item->price),
+            ];
+        });
+
+        return response()->json(['data' => $transformed]);
     }
 }

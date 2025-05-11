@@ -29,6 +29,7 @@ use App\Http\Controllers\API\V1\PermissionController;
 use App\Http\Controllers\API\V1\ProductConsumableController;
 use App\Http\Controllers\API\V1\ProductSupplierController;
 use App\Http\Controllers\API\V1\SupplierController;
+use App\Http\Controllers\API\V1\TeethOperationPrefController;
 use App\Http\Controllers\API\V1\UserPreferenceController;
 use App\Http\Controllers\API\V1\Xraypreferences;
 use App\Models\OperationPref;
@@ -116,6 +117,8 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\API\V1', 'm
     Route::get('recurringOperation', [OperationController::class, 'recurringOperation']);
     Route::get('getXraysByOperation/{id}', [OperationController::class, 'getXraysByOperation']);
     Route::get('getOperationData/{id}', [OperationController::class, 'getOperationData']);
+    Route::get('getTeeths/{id}', [OperationController::class, 'getTeeths']);
+    Route::post('updateStore', [OperationController::class, 'updateStore']);
     /* ordonance */
     route::apiResource('Ordonance', OrdonanceController::class);
     /* bloodtest */
@@ -136,6 +139,7 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\API\V1', 'm
 
     /* preferences */
     route::apiResource('XrayPreferences', Xraypreferences::class);
+    route::apiResource('TeethPreferences', TeethOperationPrefController::class);
     route::apiResource('OperationPreferences', OperationPrefsController::class);
     /* hospital */
     route::apiResource('Hospital', HospitalController::class);

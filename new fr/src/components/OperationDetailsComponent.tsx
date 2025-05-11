@@ -14,8 +14,6 @@ const OperationDetailsComponent = ({ onClose, open, operation }) => {
     operation
   );
 
-  const xrayNote = data?.xray?.[0]?.note ?? "Aucune note";
-
   return (
     <Modal
       open={open}
@@ -55,23 +53,22 @@ const OperationDetailsComponent = ({ onClose, open, operation }) => {
                 </p>
               </div>
             </div>
-
-            <h2 className="text-2xl font-semibold mb-4">Radiographie</h2>
+            <h2 className="text-2xl font-semibold mb-4">Acte dentaire</h2>
             <table className="w-full mb-6">
               <thead>
                 <tr className="bg-gray-100">
-                  <th className="p-2 text-left">Radiographie</th>
-                  <th className="p-2 text-left">Note</th>
+                  <th className="p-2 text-left">Type Opération</th>
+                  <th className="p-2 text-left">Dents</th>
 
                   <th className="p-2 text-left">Prix</th>
                 </tr>
               </thead>
               <tbody>
-                {data?.xray?.length > 0 ? (
-                  data.xray.map((radio, index) => (
+                {data?.operationdetails?.length > 0 ? (
+                  data.operationdetails.map((radio, index) => (
                     <tr key={index} className="border-b">
-                      <td className="p-2">{radio?.xray_name ?? "N/A"}</td>
-                      <td className="p-2">{radio?.note ?? "N/A"}</td>
+                      <td className="p-2">{radio?.operation_name ?? "N/A"}</td>
+                      <td className="p-2">{radio?.tooth_id ?? "N/A"}</td>
 
                       <td className="p-2">{radio?.price ?? "0"} MAD</td>
                     </tr>
@@ -85,9 +82,8 @@ const OperationDetailsComponent = ({ onClose, open, operation }) => {
                 )}
               </tbody>
             </table>
-
+            <span className="text-md font-semibold">note:</span> {data?.note}
             <div className="w-10/12 h-px bg-gray-400 mx-auto my-6"></div>
-
             <h2 className="text-2xl font-semibold mb-4">Analyses</h2>
             <table className="w-full mb-6">
               <thead>
@@ -131,9 +127,7 @@ const OperationDetailsComponent = ({ onClose, open, operation }) => {
                 )}
               </tbody>
             </table>
-
             <div className="w-10/12 h-px bg-gray-400 mx-auto my-6"></div>
-
             <h2 className="text-2xl font-semibold mb-4">Ordonance</h2>
             <ul className="list-disc pl-6 mb-6">
               {data?.ordonance?.[0]?.ordonance_details?.length > 0 ? (
@@ -149,7 +143,6 @@ const OperationDetailsComponent = ({ onClose, open, operation }) => {
                 <li className="mb-2">Aucune ordonnance disponible</li>
               )}
             </ul>
-
             <div className="w-10/12 h-px bg-gray-400 mx-auto my-6"></div>
             <h2 className="text-2xl font-semibold mb-4">
               Renseignement clinique
@@ -162,17 +155,15 @@ const OperationDetailsComponent = ({ onClose, open, operation }) => {
             ) : (
               <p className="whitespace-pre-wrap">Aucune note</p>
             )}
-
             <div className="w-10/12 h-px bg-gray-400 mx-auto my-6"></div>
-
             <h2 className="text-2xl font-semibold mb-4">
               Frais supplémentaires
             </h2>
             <ul className="list-disc pl-6 mb-6">
-              {data?.operationdetails?.length > 0 ? (
-                data.operationdetails.map((prescription, index) => (
+              {data?.extra_operation?.length > 0 ? (
+                data.extra_operation.map((prescription, index) => (
                   <li key={index} className="mb-2">
-                    <strong>{prescription?.operation_name ?? "N/A"}</strong>:{" "}
+                    <strong>{prescription?.operation_type ?? "N/A"}</strong>:{" "}
                     {prescription?.price ?? "0"} MAD
                   </li>
                 ))

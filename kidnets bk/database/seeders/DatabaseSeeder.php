@@ -14,9 +14,8 @@ class DatabaseSeeder extends Seeder
     {
         \App\Models\User::factory(1)->create();
         $this->call([
-            ExamenSeeder::class,
-            XraySeeder::class,
-            /*  BloodTestPreferenceSeeder::class */
-        ]);
+            //ExamenSeeder::class,
+            // XraySeeder::class,
+            /*  BloodTestPreferenceSeeder::class */]);
     }
 }

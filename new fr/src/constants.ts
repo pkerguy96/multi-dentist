@@ -25,6 +25,7 @@ export const CACHE_KEY_CanceledApppointments = ["CanceledApppointments"];
 export const CACHE_KEY_Agegroup = ["PatientsAgeGroup"];
 export const CACHE_KEY_Cachier = ["Cachier"];
 export const CACHE_KEY_OperationPref = ["OperationPref"];
+export const CACHE_KEY_TeethOperationPref = ["TeethOperationPref"];
 export const CACHE_KEY_CachierNumber = ["CachierNumber"];
 export const CACHE_KEY_totalPatients = ["totalPatients"];
 export const CACHE_KEY_AppointmentsKpi = ["AppointmentsKpi"];
@@ -67,6 +68,7 @@ export const CACHE_KEY_OrdonanceId = ["OrdonanceId"];
 /* new apis */
 export const CACHE_KEY_Url = "urllist";
 export const CACHE_KEY_StockExit = ["StockExit"];
+export const CACHE_KEY_Teeth = ["Teeth"];
 export const CACHE_KEY_StockEntry = ["StockEntry"];
 export const CACHE_KEY_BloodtestList = ["BloodtestList"];
 

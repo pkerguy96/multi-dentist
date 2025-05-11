@@ -16,6 +16,7 @@ class treatementOperationCollection extends ResourceCollection
     {
         return $this->collection->map(function ($operation) {
             return [
+                'patient_id' => $operation->patient_id,
                 'id' => $operation->id,
                 'name' => $operation->patient->nom . ' ' . $operation->patient->prenom,
                 'date' => $operation->created_at->toDateString(),
@@ -24,9 +25,7 @@ class treatementOperationCollection extends ResourceCollection
                 'operation_names' => $operation->operationdetails
                     ? $operation->operationdetails->pluck('operation_name')->implode(', ')
                     : '', // Convert to string separated by commas
-                'xray_types' => $operation->xray
-                    ? $operation->xray->pluck('xray_type')->implode(', ')
-                    : '', // Convert to string separated by commas
+
             ];
         });
     }
