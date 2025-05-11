@@ -11,6 +11,7 @@ use App\Http\Resources\PayementResource;
 use App\Http\Resources\treatementOperationCollection;
 use App\Http\Resources\XrayCollectionForNurse;
 use App\Models\operation_detail;
+use App\Models\operationsession;
 use App\Models\Patient;
 use App\Models\Payment;
 use App\Models\Xray;
@@ -305,7 +306,15 @@ class OperationController extends Controller
                 'total_cost' => $calculator,
             ]);
 
+            $teeth = [];
             foreach ($data['operations'] as $item) {
+                array_push($teeth, [
+                    'operation_id' =>  $request->operation_id,
+                    'tooth_id' => implode(',', $item['tooth_id']),
+                    'type' => $item['operation_type'],
+                    'operation_name' => $item['operation_type'],
+                    'price' => $item['price'],
+                ]);
                 operation_detail::create([
                     'operation_id' =>  $request->operation_id,
                     'tooth_id' => implode(',', $item['tooth_id']),
@@ -315,6 +324,10 @@ class OperationController extends Controller
                 ]);
             }
             DB::commit();
+            $session = operationsession::where('doctor_id', $doctorId)->where('operation_id', $request->operation_id)->first();
+            $session->update([
+                'teeths' => json_encode($teeth)
+            ]);
             return response()->json([
                 'message' => 'operation created successfully',
 
@@ -359,6 +372,9 @@ class OperationController extends Controller
             $data = $request->json()->all();
             $operation = Operation::findOrFail($request->operation_id);
 
+            $session = operationsession::where('doctor_id', $doctorId)->where('operation_id', $operation->id)->first();
+            $oldteeth =  Operation_Detail::where('operation_id', $operation->id)->get()->toArray();
+        
             DB::beginTransaction();
 
             // Recalculate total
@@ -376,7 +392,15 @@ class OperationController extends Controller
             Operation_Detail::where('operation_id', $operation->id)->delete();
 
             // Recreate new details
+            $teeth = [];
             foreach ($data['operations'] as $item) {
+                array_push($teeth, [
+                    'operation_id' => $operation->id,
+                    'tooth_id' => implode(',', $item['tooth_id']),
+                    'type' => $item['operation_type'],
+                    'operation_name' => $item['operation_type'],
+                    'price' => $item['price'],
+                ]);
                 Operation_Detail::create([
                     'operation_id' => $operation->id,
                     'tooth_id' => implode(',', $item['tooth_id']),
@@ -387,6 +411,17 @@ class OperationController extends Controller
             }
 
             DB::commit();
+            
+            $updated = array_udiff($teeth, $oldteeth, function ($a, $b) {
+                // Compare arrays as JSON strings
+                return strcmp(json_encode($a), json_encode($b));
+            });
+
+            $newteeth = array_merge(json_decode($session->teeths), $updated);
+
+            $session->update([
+                'teeths' => json_encode($newteeth)
+            ]);
 
             return response()->json([
                 'message' => 'Operation updated successfully.',

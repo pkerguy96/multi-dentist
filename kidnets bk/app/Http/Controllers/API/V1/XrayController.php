@@ -150,8 +150,9 @@ class XrayController extends Controller
 
             $operation = Operation::where('doctor_id', $doctorId)->where('id', $id)->firstOrFail(); // Fetch the operation to adjust total_cost
             $existingXrays = operation_detail::where('operation_id', $id)->get(); // Fetch existing x-rays for the operation
+            $extraoperations = OperationExtra::where('operation_id', $id)->get();
 
-
+            
             // Step 3: Identify deleted, new, and updated x-rays
             $incomingXrayIds = $incomingXrays->pluck('id')->filter(); // Get IDs of incoming x-rays, filter out nulls for new items
             $deletedXrays = $existingXrays->whereNotIn('id', $incomingXrayIds); // Identify x-rays to be deleted

@@ -8,6 +8,7 @@ use App\Models\Bloodtest;
 use App\Models\Notification;
 use App\Models\Operation;
 use App\Models\OperationNote;
+use App\Models\operationsession;
 use App\Models\Ordonance;
 use Illuminate\Http\Request;
 use App\Models\Patient;
@@ -54,6 +55,13 @@ class OperationStepsController extends Controller
                     'patient_id' => $patient->id,
                 ]);
             }
+
+            operationsession::create([
+                'doctor_id' => $doctorId,
+                'operation_id' => $operation->id,
+                'clinique' => $validated['note'] ?? '',
+                'patient_id' => $patient->id,
+            ]);
 
             // Update or create a WaitingRoom entry
             $waiting = WaitingRoom::where('doctor_id', $doctorId)->where('patient_id', $patient->id)->first();
@@ -221,6 +229,7 @@ class OperationStepsController extends Controller
             // If note exists, process it
             if (!empty($validated['note'])) {
                 $dataNote =  OperationNote::where('doctor_id', $doctorId)->where('operation_id', $validated['operation_id'])->first();
+                $session = operationsession::where('doctor_id', $doctorId)->where('operation_id', $validated['operation_id'])->first();
                 $data  = [
                     'doctor_id' => $doctorId,
                     'operation_id' => $validated['operation_id'],
@@ -229,8 +238,17 @@ class OperationStepsController extends Controller
                 ];
                 if ($dataNote) {
                     $dataNote->update($data);
+                    if($session) $session->update([
+                        'clinique' => $validated['note'] ?? '',
+                    ]);
                 } else {
                     OperationNote::create($data);
+                    operationsession::create([
+                        'doctor_id' => $doctorId,
+                        'operation_id' => $validated['operation_id'],
+                        'clinique' => $validated['note'] ?? '',
+                        'patient_id' => $patient->id
+                    ]);
                 }
             }
 
