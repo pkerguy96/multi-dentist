@@ -309,11 +309,11 @@ class OperationController extends Controller
             $teeth = [];
             foreach ($data['operations'] as $item) {
                 array_push($teeth, [
-                    'operation_id' =>  $request->operation_id,
+                    'operation_id' => (string) $request->operation_id,
                     'tooth_id' => implode(',', $item['tooth_id']),
                     'type' => $item['operation_type'],
                     'operation_name' => $item['operation_type'],
-                    'price' => $item['price'],
+                    'price' => (float) $item['price'],
                 ]);
                 operation_detail::create([
                     'operation_id' =>  $request->operation_id,
@@ -326,7 +326,7 @@ class OperationController extends Controller
             DB::commit();
             $session = operationsession::where('doctor_id', $doctorId)->where('operation_id', $request->operation_id)->first();
             $session->update([
-                'teeths' => json_encode($teeth)
+                'teeths' => json_encode([$teeth])
             ]);
             return response()->json([
                 'message' => 'operation created successfully',
@@ -373,9 +373,19 @@ class OperationController extends Controller
             $operation = Operation::findOrFail($request->operation_id);
 
             $session = operationsession::where('doctor_id', $doctorId)->where('operation_id', $operation->id)->first();
-            log::info('teeth', [$session->teeths]);
 
-            $oldteeth =  Operation_Detail::where('operation_id', $operation->id)->get()->toArray();
+            $oldteethRaw = Operation_Detail::where('operation_id', $operation->id)->get();
+            $oldteeth = [];
+
+            foreach ($oldteethRaw as $item) {
+                $oldteeth[] = [
+                    'operation_id' => (string) $item->operation_id,
+                    'tooth_id' => $item->tooth_id,
+                    'type' => $item->type,
+                    'operation_name' => $item->operation_name,
+                    'price' => (float) $item->price,
+                ];
+            }
 
             DB::beginTransaction();
 
@@ -394,15 +404,18 @@ class OperationController extends Controller
             Operation_Detail::where('operation_id', $operation->id)->delete();
 
             // Recreate new details
+
+            
+            
             $teeth = [];
             foreach ($data['operations'] as $item) {
-                array_push($teeth, [
-                    'operation_id' => $operation->id,
+                $teeth[] = [
+                    'operation_id' => (string) $operation->id,
                     'tooth_id' => implode(',', $item['tooth_id']),
                     'type' => $item['operation_type'],
                     'operation_name' => $item['operation_type'],
-                    'price' => $item['price'],
-                ]);
+                    'price' => (float) $item['price'],
+                ];
                 Operation_Detail::create([
                     'operation_id' => $operation->id,
                     'tooth_id' => implode(',', $item['tooth_id']),
@@ -414,12 +427,31 @@ class OperationController extends Controller
 
             DB::commit();
 
-            $updated = array_udiff($teeth, $oldteeth, function ($a, $b) {
-                // Compare arrays as JSON strings
-                return strcmp(json_encode($a), json_encode($b));
-            });
+            Log::info('hello', $teeth);
 
-            $newteeth = array_merge(json_decode($session->teeths), $updated);
+            // $updated = array_udiff($teeth, $oldteeth, function ($a, $b) {
+            //     // Compare arrays as JSON strings
+            //     return strcmp(json_encode($a), json_encode($b));
+            // });
+
+            $updated = [];
+
+            foreach ($teeth as $itemA) {
+                $found = false;
+                foreach ($oldteeth as $itemB) {
+                    Log::info('vvv',[json_encode($itemA), json_encode($itemB)]);
+                    if (json_encode($itemA) === json_encode($itemB)) {
+                        $found = true;
+                        break;
+                    }
+                }
+
+                if (! $found) {
+                    $updated[] = $itemA;
+                }
+            }
+
+            $newteeth = array_merge(json_decode($session->teeths), [$updated]);
 
             $session->update([
                 'teeths' => json_encode($newteeth)
