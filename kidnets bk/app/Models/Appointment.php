@@ -15,4 +15,8 @@ class Appointment extends Model
     {
         return $this->belongsTo(Patient::class, 'patient_id')->withTrashed();
     }
+    public function operation()
+    {
+        return $this->belongsTo(Operation::class, 'operation_id');
+    }
 }

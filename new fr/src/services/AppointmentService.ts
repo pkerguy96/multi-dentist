@@ -9,7 +9,18 @@ export interface Appointments {
   patient_name?: string;
   phone_number?: string;
 }
+export interface AppointmentPayload {
+  patient_id: number;
+  operation_id: number;
+  appointments: {
+    date: string;
+    note?: string;
+  }[];
+}
 const appointmentAPIClient = new APIClient<Appointments>("/Appointment");
+export const StoreOpappointmentAPIClient = new APIClient<Appointments>(
+  "/storeMultipleForOperation"
+);
 export const paginatedAppointmentApiClient = new APIClient<Appointments>(
   "/GetAppointmentPagated"
 );

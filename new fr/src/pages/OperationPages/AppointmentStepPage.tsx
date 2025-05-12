@@ -22,13 +22,18 @@ import patientAPIClient, {
   OnlyPatientData,
 } from "../../services/PatientService";
 import addGlobal from "../../hooks/addGlobal";
-import appointmentAPIClient from "../../services/AppointmentService";
+import appointmentAPIClient, {
+  AppointmentPayload,
+  StoreOpappointmentAPIClient,
+} from "../../services/AppointmentService";
 import LoadingSpinner from "../../components/LoadingSpinner";
 import { useSnackbarStore } from "../../zustand/useSnackbarStore";
 import { AxiosError } from "axios";
 import { useLocation, useNavigate } from "react-router";
 import { CliniquerensignementProps } from "../OperationPagesUpdated/Cliniquerensignement";
 import KeyboardBackspaceOutlinedIcon from "@mui/icons-material/KeyboardBackspaceOutlined";
+import AddIcon from "@mui/icons-material/Add";
+import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 
 interface DataSend {
   patient_id: number;
@@ -40,12 +45,16 @@ const AppointmentStepPage: React.FC<CliniquerensignementProps> = ({
   onNext,
   onBack,
 }: any) => {
+  const [appointments, setAppointments] = useState([
+    { date: moment(), note: "" },
+  ]);
   const [selectedDateTime, setSelectedDateTime] = useState(moment());
   const location = useLocation();
   const navigate = useNavigate();
 
   const queryParams = new URLSearchParams(location.search);
   const patient_id = queryParams.get("id");
+  const operation_id = queryParams.get("operation_id");
   const { showSnackbar } = useSnackbarStore();
   const noteRef = useRef<HTMLInputElement>(null);
   const dateTimePickerRef = useRef(null);
@@ -59,8 +68,12 @@ const AppointmentStepPage: React.FC<CliniquerensignementProps> = ({
     undefined,
     parseInt(patient_id)
   );
+  console.log(data);
 
-  const Addmutation = addGlobal({} as DataSend, appointmentAPIClient);
+  const Addmutation = addGlobal(
+    {} as AppointmentPayload,
+    StoreOpappointmentAPIClient
+  );
   if (isLoading) return <LoadingSpinner />;
 
   const handleDateTimeChange = (
@@ -76,16 +89,30 @@ const AppointmentStepPage: React.FC<CliniquerensignementProps> = ({
   const onsubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Frontend validation for the date field
+    /*  // Frontend validation for the date field
     if (!selectedDateTime) {
       showSnackbar("Veuillez sélectionner une date.", "error");
       return;
+    } */
+    for (const appt of appointments) {
+      if (!appt.date) {
+        showSnackbar("Veuillez remplir toutes les dates.", "error");
+        return;
+      }
+      /* var formData: DataSend = {
+        patient_id: parseInt(patient_id),
+        date: appt.date.format("YYYY-MM-DDTHH:mm:ss"),
+        note: appt.note,
+      }; */
     }
+
     const formData = {
       patient_id: parseInt(patient_id),
-
-      date: selectedDateTime.format("YYYY-MM-DDTHH:mm:ss"),
-      note: noteRef?.current?.value,
+      operation_id: parseInt(operation_id),
+      appointments: appointments.map((appointment) => ({
+        date: appointment.date.format("YYYY-MM-DDTHH:mm:ss"),
+        note: appointment.note,
+      })),
     };
 
     await Addmutation.mutateAsync(formData, {
@@ -129,33 +156,74 @@ const AppointmentStepPage: React.FC<CliniquerensignementProps> = ({
             Ajouter un rendez-vous ?
           </Typography>
         </Box>
-        <Box className="flex gap-4 flex-col">
-          <TextField
-            fullWidth
-            id="name"
-            value={`${data.nom} ${data.prenom}`}
-            disabled
-          />
-
-          <LocalizationProvider dateAdapter={AdapterMoment}>
-            <DateTimePicker
-              value={selectedDateTime}
-              ampm={false}
-              onChange={handleDateTimeChange}
-              inputRef={dateTimePickerRef}
-            />
-          </LocalizationProvider>
-
-          <TextField
-            inputRef={noteRef}
-            id="large-text"
-            label="Note"
-            multiline
-            rows={4}
-            variant="outlined"
-            fullWidth
-          />
+        <TextField
+          fullWidth
+          id="name"
+          value={`${data.nom} ${data.prenom}`}
+          disabled
+        />
+        <Box className="flex gap-5 flex-col">
+          <Box className=" flex flex-col w-full gap-3">
+            {appointments.map((appointment, index) => (
+              <Box key={index} className="flex flex-col gap-2  border p-4">
+                <Box className="flex justify-between">
+                  <h2>Rendez-vous {index + 2}</h2>
+                  <IconButton
+                    onClick={() => {
+                      const updated = [...appointments];
+                      updated.splice(index, 1);
+                      setAppointments(updated);
+                    }}
+                    size="small"
+                    color="error"
+                  >
+                    <DeleteOutlineIcon />
+                  </IconButton>
+                </Box>
+                <LocalizationProvider dateAdapter={AdapterMoment}>
+                  <DateTimePicker
+                    value={appointment.date}
+                    ampm={false}
+                    onChange={(value) => {
+                      const updated = [...appointments];
+                      updated[index].date = value!;
+                      setAppointments(updated);
+                    }}
+                  />
+                </LocalizationProvider>
+                <TextField
+                  label="Note"
+                  multiline
+                  rows={3}
+                  fullWidth
+                  value={appointment.note}
+                  onChange={(e) => {
+                    const updated = [...appointments];
+                    updated[index].note = e.target.value;
+                    setAppointments(updated);
+                  }}
+                />
+              </Box>
+            ))}
+            <Box className="flex justify-end">
+              <Button
+                className="w-max "
+                sx={{ borderRadius: 16 }}
+                variant="outlined"
+                endIcon={<AddIcon />}
+                onClick={() =>
+                  setAppointments([
+                    ...appointments,
+                    { date: moment(), note: "" },
+                  ])
+                }
+              >
+                Ajouter
+              </Button>
+            </Box>
+          </Box>
         </Box>
+
         <Box className="flex justify-between flex-row content-center">
           <Button
             className="w-full md:w-max !px-10 !py-3 rounded-lg "

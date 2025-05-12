@@ -119,12 +119,15 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\API\V1', 'm
     Route::get('getOperationData/{id}', [OperationController::class, 'getOperationData']);
     Route::get('getTeeths/{id}', [OperationController::class, 'getTeeths']);
     Route::post('updateStore', [OperationController::class, 'updateStore']);
+    Route::get('anchof', [OperationController::class, 'anchof']);
     /* ordonance */
     route::apiResource('Ordonance', OrdonanceController::class);
     /* bloodtest */
     route::apiResource('bloodtest', BloodTestController::class);
     Route::post('insertWihtoutxray', [XrayController::class, 'insertWihtoutxray']);
     Route::get('GetAppointmentPagated', [AppointmentController::class, 'GetAppointmentPagated']);
+    Route::get('GetOpAppointments/{id}', [AppointmentController::class, 'GetOpAppointments']);
+    Route::post('storeMultipleForOperation', [AppointmentController::class, 'storeMultipleForOperation']);
 
 
     /* Payment and related routes */

@@ -23,21 +23,11 @@ trait UserRoleCheck
             return response()->json(['error' => 'Unauthorized'], Response::HTTP_UNAUTHORIZED);
         }
 
-        Log::info("Checking User Role", [
-            'user_id' => $user->id,
-            'role' => $user->role,
-            'team_id' => $user->doctor_id ?? $user->id
-        ]);
 
         // Optional permission check: Allow access if the user has at least one required permission
         if ($permissions) {
             if (!$this->hasAnyPermission($user, (array) $permissions)) {
-                Log::warning("Permission Denied", [
-                    'user_id' => $user->id,
-                    'required_permissions' => $permissions,
-                    'user_permissions' => $user->getAllPermissions()->pluck('name')->toArray(),
-                    'roles' => $user->roles->pluck('name')->toArray()
-                ]);
+
                 return response()->json(['error' => 'Forbidden: Missing Required Permissions'], Response::HTTP_FORBIDDEN);
             }
         }
@@ -63,10 +53,7 @@ trait UserRoleCheck
         // ✅ Allow access if the user has at least one required permission
         foreach ($permissions as $permission) {
             if ($user->can($permission)) {
-                Log::info("✅ Permission Granted", [
-                    'user_id' => $user->id,
-                    'granted_permission' => $permission
-                ]);
+
                 return true;
             }
         }

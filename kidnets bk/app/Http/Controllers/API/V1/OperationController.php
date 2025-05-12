@@ -373,8 +373,10 @@ class OperationController extends Controller
             $operation = Operation::findOrFail($request->operation_id);
 
             $session = operationsession::where('doctor_id', $doctorId)->where('operation_id', $operation->id)->first();
+            log::info('teeth', [$session->teeths]);
+
             $oldteeth =  Operation_Detail::where('operation_id', $operation->id)->get()->toArray();
-        
+
             DB::beginTransaction();
 
             // Recalculate total
@@ -411,7 +413,7 @@ class OperationController extends Controller
             }
 
             DB::commit();
-            
+
             $updated = array_udiff($teeth, $oldteeth, function ($a, $b) {
                 // Compare arrays as JSON strings
                 return strcmp(json_encode($a), json_encode($b));
@@ -453,5 +455,28 @@ class OperationController extends Controller
         });
 
         return response()->json(['data' => $transformed]);
+    }
+    public function anchof()
+    {
+        $sessions = operationsession::all()->map(function ($session) {
+            return [
+                'id' => $session->id,
+                'doctor_id' => $session->doctor_id,
+                'patient_id' => $session->patient_id,
+                'operation_id' => $session->operation_id,
+                'decoded_bilans' => $this->safeJsonDecode($session->bilans),
+                'decoded_teeths' => $this->safeJsonDecode($session->teeths),
+            ];
+        });
+
+        return response()->json($sessions);
+    }
+    private function safeJsonDecode($json)
+    {
+        $decoded = json_decode($json, true);
+        return json_last_error() === JSON_ERROR_NONE ? $decoded : [
+            'error' => json_last_error_msg(),
+            'raw' => $json
+        ];
     }
 }

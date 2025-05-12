@@ -12,6 +12,7 @@ use App\Http\Resources\AppointmentResource;
 use App\Traits\HttpResponses;
 use App\Traits\UserRoleCheck;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class AppointmentController extends Controller
 {
@@ -74,7 +75,7 @@ class AppointmentController extends Controller
 
         // Check if it's a phone appointment
         $isPhoneAppointment = $request->input('type') === 'phone';
- 
+
         if ($isPhoneAppointment) {
             Log::info('Processing Phone Appointment', ['phone' => $request->input('phone')]);
 
@@ -255,5 +256,77 @@ class AppointmentController extends Controller
         // Delete the appointment
         $appointment->delete();
         return $this->success(null, 'deleted', 200);
+    }
+
+    public function GetOpAppointments($operation_id, Request $request)
+    {
+        $doctorId = $this->checkUserRole();
+
+
+        if (!\App\Models\Operation::where('id', $operation_id)->exists()) {
+            return response()->json([
+                'message' => 'Opération introuvable.',
+            ], 404);
+        }
+
+        $appointments = Appointment::where('doctor_id', $doctorId)
+            ->where('operation_id', $operation_id)
+            ->get(['id', 'date', 'note']);
+
+        return response()->json([
+            'message' => 'Liste des rendez-vous de cette opération.',
+            'operation_id' => $operation_id,
+            'appointments' => $appointments->map(function ($appt) {
+                return [
+                    'id' => $appt->id,
+                    'date' => \Carbon\Carbon::parse($appt->date)->format('Y-m-d\TH:i:s'),
+                    'note' => $appt->note,
+                ];
+            }),
+        ]);
+    }
+
+
+    public function storeMultipleForOperation(Request $request)
+    {
+        $doctorId = $this->checkUserRole();
+        $validated = $request->validate([
+            'patient_id' => 'required|exists:patients,id',
+            'operation_id' => 'required|exists:operations,id',
+            'appointments' => 'required|array|min:1',
+            'appointments.*.date' => 'required|date_format:Y-m-d\TH:i:s',
+            'appointments.*.note' => 'nullable|string',
+        ]);
+        DB::beginTransaction();
+        try {
+            $savedAppointments = [];
+            foreach ($validated['appointments'] as $index => $appt) {
+                $parsedDate = Carbon::parse($appt['date']);
+
+                if ($parsedDate->isPast()) {
+                    throw new \Exception("L'heure du rendez-vous {$parsedDate} est déjà passée (index $index).");
+                }
+
+                $created = Appointment::create([
+                    'doctor_id' => $doctorId,
+                    'patient_id' => $validated['patient_id'],
+                    'operation_id' => $validated['operation_id'],
+                    'date' => $parsedDate,
+                    'note' => $appt['note'] ?? null,
+                ]);
+                $savedAppointments[] = new AppointmentResource($created);
+            }
+            DB::commit();
+            return response()->json([
+                'message' => 'Tous les rendez-vous ont été créés avec succès.',
+                'data' => $savedAppointments,
+            ], 201);
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => $e->getMessage(),
+                'error' => $e->getMessage(),
+            ], 422);
+        }
     }
 }

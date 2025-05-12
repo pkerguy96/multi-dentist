@@ -5,6 +5,7 @@ namespace App\Http\Controllers\API\V1;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreBloodTestRequest;
 use App\Models\Bloodtest;
+use App\Models\operationsession;
 use App\Models\Patient;
 use App\Models\WaitingRoom;
 use App\Traits\HttpResponses;
@@ -81,6 +82,7 @@ class BloodTestController extends Controller
         try {
             $validatedData = $request->validated();
             $bloodTests = $validatedData['blood_test'];
+            log::info($bloodTests);
             // Concatenate data using commas
             $titles = implode('|', array_column($bloodTests, 'title'));
             $codes = implode('|', array_column($bloodTests, 'code'));
@@ -97,7 +99,12 @@ class BloodTestController extends Controller
                 'delai' => $delais,
                 'price' => $prices,
             ]);
-
+            $sessionData = operationsession::where('operation_id', $validatedData['operation_id'])->first();
+            $sessionData->update([
+                'bilans' => json_encode([
+                    "0" => $bloodTests
+                ])
+            ]);
 
             $waiting = WaitingRoom::where('patient_id', $request->patient_id)->first();
             $patient = Patient::where('id', $request->patient_id)->first();
@@ -131,7 +138,45 @@ class BloodTestController extends Controller
             $delais = implode('|', array_column($bloodTests, 'DELAI'));
             $prices = implode('|', array_column($bloodTests, 'price'));
 
-            // Delete existing blood tests for the operation ID
+            $session = operationsession::where('operation_id', $validatedData['operation_id'])->first();
+
+            /* session */
+            $sessionBilans = $session && $session->bilans ? json_decode($session->bilans, true) : [];
+            log::info('sessionss', [$sessionBilans]);
+            // Normalize both for comparison
+            $normalize = function ($arr) {
+                return array_filter(array_map(function ($item) {
+                    if (!is_array($item)) {
+                        return null; // skip invalid items
+                    }
+                    ksort($item);
+                    return array_map('strval', $item);
+                }, $arr));
+            };
+            $oldAll = collect($sessionBilans)->flatten(1)->all(); // Flatten to get all past bilans
+            $newBilans = $request->validated()['blood_test'];
+
+            $added = array_udiff(
+                $normalize($newBilans),
+                $normalize($oldAll),
+                fn($a, $b) => strcmp(json_encode($a), json_encode($b))
+            );
+
+            // Only add step if there’s new items
+            if (!empty($added)) {
+                $nextStep = (string) count($sessionBilans); // Next available numeric step
+
+                $sessionBilans[$nextStep] = $added;
+
+                $session->update([
+                    'bilans' => json_encode($sessionBilans)
+                ]);
+            }
+            /* session */
+
+
+
+
             BloodTest::where('operation_id', $validatedData['operation_id'])->delete();
 
             // Create a new blood test record
@@ -144,6 +189,7 @@ class BloodTestController extends Controller
                 'delai' => $delais,
                 'price' => $prices,
             ]);
+
 
             // Update or create waiting room record
             $waiting = WaitingRoom::where('patient_id', $request->patient_id)->first();
