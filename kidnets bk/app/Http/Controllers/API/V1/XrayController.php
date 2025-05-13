@@ -21,6 +21,7 @@ use App\Models\operation_detail;
 use App\Events\MyEvent;
 use App\Models\Notification;
 use App\Models\OperationExtra;
+use App\Models\operationsession;
 use App\Models\Product;
 use App\Models\ProductOperationConsumables;
 use App\Models\TeethOperationPrefs;
@@ -152,7 +153,7 @@ class XrayController extends Controller
             $existingXrays = operation_detail::where('operation_id', $id)->get(); // Fetch existing x-rays for the operation
             $extraoperations = OperationExtra::where('operation_id', $id)->get();
 
-            
+
             // Step 3: Identify deleted, new, and updated x-rays
             $incomingXrayIds = $incomingXrays->pluck('id')->filter(); // Get IDs of incoming x-rays, filter out nulls for new items
             $deletedXrays = $existingXrays->whereNotIn('id', $incomingXrayIds); // Identify x-rays to be deleted
@@ -198,7 +199,8 @@ class XrayController extends Controller
             $isDone = $request->input('treatment_isdone', 0); // Get treatment_isdone from the request
 
             if ($isDone == 1) {
-                $operation->treatment_isdone = 1; // Mark treatment as done
+                $operation->treatment_isdone = 1;
+                operationsession::where('doctor_id', $doctorId)->where('operation_id', $operation->id)->delete();
             } else {
                 $operation->treatment_isdone = 0; // Mark treatment as not done
                 $operation->treatment_nbr += 1; // Increment treatment_nbr for not done treatment
@@ -286,10 +288,12 @@ class XrayController extends Controller
         // Step 1: Create a new operation
         $operation = Operation::where('id', $request->operation_id)->first();
         // Step 2: Handle treatment status
+        log::info('isdone', [$request->input('treatment_isdone')]);
         $isDone = $request->input('treatment_isdone', 0);
 
         if ($isDone == 1) {
             $operation->treatment_isdone = 1;
+            operationsession::where('doctor_id', $doctorId)->where('operation_id', $operation->id)->delete();
         } else {
             $operation->treatment_isdone = 0;
             $operation->treatment_nbr += 1;

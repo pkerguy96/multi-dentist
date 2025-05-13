@@ -101,6 +101,7 @@ const BloodTest: React.FC<CliniquerensignementProps> = ({ onNext, onBack }) => {
       operation_id: operationId ? parseInt(operationId) : null,
       blood_test: fields,
     };
+    console.log(formatedData);
 
     try {
       if (create) {

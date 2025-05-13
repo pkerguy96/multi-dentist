@@ -27,7 +27,7 @@ class StoreBloodTestRequest extends FormRequest
             'blood_test' => 'required|array',
             'blood_test.*.title' => 'string',
             'blood_test.*.code' => 'string',
-            'blood_test.*.DELAI' => 'nullable',
+            'blood_test.*.delai' => 'nullable',
             'blood_test.*.price' => 'string',
         ];;
     }

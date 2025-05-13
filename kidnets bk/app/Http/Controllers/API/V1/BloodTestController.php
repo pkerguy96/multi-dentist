@@ -82,14 +82,12 @@ class BloodTestController extends Controller
         try {
             $validatedData = $request->validated();
             $bloodTests = $validatedData['blood_test'];
-            log::info($bloodTests);
-            // Concatenate data using commas
+
             $titles = implode('|', array_column($bloodTests, 'title'));
             $codes = implode('|', array_column($bloodTests, 'code'));
-            $delais = implode('|', array_column($bloodTests, 'DELAI'));
+            $delais = implode('|', array_column($bloodTests, 'delai'));
             $prices = implode('|', array_column($bloodTests, 'price'));
 
-            // Create a new blood test record
             BloodTest::create([
                 'doctor_id' => $doctorId,
                 'patient_id' => $validatedData['patient_id'],
@@ -102,7 +100,7 @@ class BloodTestController extends Controller
             $sessionData = operationsession::where('operation_id', $validatedData['operation_id'])->first();
             $sessionData->update([
                 'bilans' => json_encode([
-                    "0" => $bloodTests
+                    $bloodTests
                 ])
             ]);
 
@@ -132,48 +130,56 @@ class BloodTestController extends Controller
 
             $bloodTests = $validatedData['blood_test'];
 
-            // Concatenate data using commas
+
             $titles = implode('|', array_column($bloodTests, 'title'));
             $codes = implode('|', array_column($bloodTests, 'code'));
-            $delais = implode('|', array_column($bloodTests, 'DELAI'));
+            $delais = implode('|', array_column($bloodTests, 'delai'));
             $prices = implode('|', array_column($bloodTests, 'price'));
 
-            $session = operationsession::where('operation_id', $validatedData['operation_id'])->first();
-
             /* session */
-            $sessionBilans = $session && $session->bilans ? json_decode($session->bilans, true) : [];
-            log::info('sessionss', [$sessionBilans]);
-            // Normalize both for comparison
-            $normalize = function ($arr) {
-                return array_filter(array_map(function ($item) {
-                    if (!is_array($item)) {
-                        return null; // skip invalid items
-                    }
-                    ksort($item);
-                    return array_map('strval', $item);
-                }, $arr));
-            };
-            $oldAll = collect($sessionBilans)->flatten(1)->all(); // Flatten to get all past bilans
-            $newBilans = $request->validated()['blood_test'];
+            $session = operationsession::where('doctor_id', $doctorId)->where('operation_id', $validatedData['operation_id'])->first();
+            $oldRecord = BloodTest::where('operation_id', $validatedData['operation_id'])->first();
 
-            $added = array_udiff(
-                $normalize($newBilans),
-                $normalize($oldAll),
-                fn($a, $b) => strcmp(json_encode($a), json_encode($b))
-            );
+            $oldTests = [];
+            if ($oldRecord) {
+                $oldTitles = explode('|', $oldRecord->title);
+                $oldCodes = explode('|', $oldRecord->code);
+                $oldDelais = explode('|', $oldRecord->delai);
+                $oldPrices = explode('|', $oldRecord->price);
 
-            // Only add step if there’s new items
-            if (!empty($added)) {
-                $nextStep = (string) count($sessionBilans); // Next available numeric step
-
-                $sessionBilans[$nextStep] = $added;
-
-                $session->update([
-                    'bilans' => json_encode($sessionBilans)
-                ]);
+                foreach ($oldTitles as $index => $title) {
+                    $oldTests[] = [
+                        'title' => $title,
+                        'code' => $oldCodes[$index] ?? '',
+                        'delai' => $oldDelais[$index] ?? '',
+                        'price' => $oldPrices[$index] ?? '',
+                    ];
+                }
             }
-            /* session */
 
+            /* session */
+            // Compare old vs new
+            $updated = [];
+            foreach ($validatedData['blood_test'] as $itemA) {
+                $found = false;
+                foreach ($oldTests as $itemB) {
+                    Log::info('vvv', [json_encode($itemA), json_encode($itemB)]);
+                    if (json_encode($itemA) === json_encode($itemB)) {
+                        $found = true;
+                        break;
+                    }
+                }
+
+                if (! $found) {
+                    $updated[] = $itemA;
+                }
+            }
+
+            $newbloodtests = array_merge(json_decode($session->bilans), [$updated]);
+
+            $session->update([
+                'bilans' => json_encode($newbloodtests)
+            ]);
 
 
 

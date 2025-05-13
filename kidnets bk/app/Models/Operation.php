@@ -15,6 +15,10 @@ class Operation extends Model
     {
         return $this->belongsTo(Patient::class, 'patient_id')->withTrashed();
     }
+    public function session()
+    {
+        return $this->hasOne(operationsession::class, 'operation_id');
+    }
     public function operationdetails()
     {
         return $this->hasMany(operation_detail::class, 'operation_id');
@@ -22,6 +26,10 @@ class Operation extends Model
     public function payments()
     {
         return $this->hasMany(Payment::class, 'operation_id');
+    }
+    public function appointments()
+    {
+        return $this->hasMany(Appointment::class, 'operation_id');
     }
     public function xray()
     {

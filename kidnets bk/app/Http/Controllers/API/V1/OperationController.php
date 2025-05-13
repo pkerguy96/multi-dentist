@@ -16,6 +16,7 @@ use App\Models\Patient;
 use App\Models\Payment;
 use App\Models\Xray;
 use App\Traits\HasPermissionCheck;
+use App\Traits\HttpResponses;
 use App\Traits\UserRoleCheck;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -25,6 +26,7 @@ use Illuminate\Validation\ValidationException;
 
 class OperationController extends Controller
 {
+    use HttpResponses;
     use HasPermissionCheck;
     use UserRoleCheck;
     /**
@@ -405,8 +407,8 @@ class OperationController extends Controller
 
             // Recreate new details
 
-            
-            
+
+
             $teeth = [];
             foreach ($data['operations'] as $item) {
                 $teeth[] = [
@@ -439,7 +441,7 @@ class OperationController extends Controller
             foreach ($teeth as $itemA) {
                 $found = false;
                 foreach ($oldteeth as $itemB) {
-                    Log::info('vvv',[json_encode($itemA), json_encode($itemB)]);
+                    Log::info('vvv', [json_encode($itemA), json_encode($itemB)]);
                     if (json_encode($itemA) === json_encode($itemB)) {
                         $found = true;
                         break;
@@ -488,27 +490,50 @@ class OperationController extends Controller
 
         return response()->json(['data' => $transformed]);
     }
-    public function anchof()
+    public function getReoccuringOperations($operationId)
     {
-        $sessions = operationsession::all()->map(function ($session) {
-            return [
-                'id' => $session->id,
-                'doctor_id' => $session->doctor_id,
-                'patient_id' => $session->patient_id,
-                'operation_id' => $session->operation_id,
-                'decoded_bilans' => $this->safeJsonDecode($session->bilans),
-                'decoded_teeths' => $this->safeJsonDecode($session->teeths),
-            ];
-        });
+        $operation = Operation::with([
+            'patient' => function ($query) {
+                $query->select('id', 'nom', 'prenom', 'date', 'mutuelle');
+            },
+            'session',
+            'payments',
+            'appointments'
+        ])->findOrFail($operationId);
 
-        return response()->json($sessions);
-    }
-    private function safeJsonDecode($json)
-    {
-        $decoded = json_decode($json, true);
-        return json_last_error() === JSON_ERROR_NONE ? $decoded : [
-            'error' => json_last_error_msg(),
-            'raw' => $json
+        $patient = $operation->patient;
+        $session = $operation->session;
+        $totalPaid = $operation->payments->sum('amount_paid');
+
+        $data = [
+            'operation_id' => $operation->id,
+            'patient' => [
+                'nom' => $patient->nom,
+                'prenom' => $patient->prenom,
+                'age' => $patient->age,
+                'mutuelle' => $patient->mutuelle
+            ],
+            'session' => $session ? [
+                'clinique' => $session->clinique,
+                'teeths' => json_decode($session->teeths),
+                'bilans' => json_decode($session->bilans),
+                'ordonnances' => json_decode($session->ordonqnces),
+            ] : null,
+            'payments' => [
+                'total_cost' => (float) $operation->total_cost,
+                'total_paid' => (float)$totalPaid,
+                'remaining' => (float)$operation->total_cost - $totalPaid,
+
+            ],
+            'appointments' => $operation->appointments->map(function ($appt) {
+                return [
+                    'id' => $appt->id,
+                    'note' => $appt->note,
+                    'date' => \Carbon\Carbon::parse($appt->date)->format('Y-m-d H:i'),
+                ];
+            }),
         ];
+
+        return $this->success($data, 'success', 200);
     }
 }

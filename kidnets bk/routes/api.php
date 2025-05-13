@@ -118,8 +118,9 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\API\V1', 'm
     Route::get('getXraysByOperation/{id}', [OperationController::class, 'getXraysByOperation']);
     Route::get('getOperationData/{id}', [OperationController::class, 'getOperationData']);
     Route::get('getTeeths/{id}', [OperationController::class, 'getTeeths']);
+    Route::get('getReoccuringOperations/{id}', [OperationController::class, 'getReoccuringOperations']);
     Route::post('updateStore', [OperationController::class, 'updateStore']);
-    Route::get('anchof', [OperationController::class, 'anchof']);
+
     /* ordonance */
     route::apiResource('Ordonance', OrdonanceController::class);
     /* bloodtest */

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 
 class Patient extends Model
 {
@@ -56,6 +57,10 @@ class Patient extends Model
             $patient->p_folder = $patientFolder;
             $patient->save(); // Save the patient to persist the changes
         });
+    }
+    public function getAgeAttribute()
+    {
+        return Carbon::parse($this->date)->age;
     }
     public function appointments()
     {

@@ -29,4 +29,8 @@ const operationDetailsApiClient = new APIClient<OperationDetail>(
 export const deleteoperationdetailsApiclient = new APIClient<OperationDetail>(
   "/deletePaymentDetail"
 );
+
+export const operationSessionDetails = new APIClient<any>(
+  "/getReoccuringOperations"
+);
 export default operationDetailsApiClient;

@@ -7,6 +7,7 @@ use App\Models\Ordonance;
 use Illuminate\Http\Request;
 use App\Http\Resources\OrdonanceCollection;
 use App\Http\Resources\OrdonanceResource;
+use App\Models\operationsession;
 use App\Models\Ordonance_Details;
 use App\Models\WaitingRoom;
 use App\Traits\HasPermissionCheck;
@@ -58,6 +59,21 @@ class OrdonanceController extends Controller
         $doctorId = $this->checkUserRole(['superadmin', 'insert_ordonance', 'access_ordonance']);
         try {
             $medicineArray = $request->medicine;
+            $session = operationsession::where('doctor_id', $doctorId)
+                ->where('operation_id', $request->operation_id)
+                ->first();
+            if ($session) {
+                $medicin = [];
+                foreach ($medicineArray as $med) {
+                    array_push($medicin, [
+                        'medicine_name' => $med['medicine_name'],
+                        'note' => $med['note'],
+                    ]);
+                }
+                $session->update([
+                    'ordonqnces' => json_encode([$medicin])
+                ]);
+            }
             DB::beginTransaction();
             // Create the Ordonance record
             $ordonance = Ordonance::create([
@@ -126,7 +142,53 @@ class OrdonanceController extends Controller
         try {
 
             $ordonance = Ordonance::where('doctor_id', $doctorId)->where('id', $id)->firstOrFail();;
-            // Start a database transaction
+            $medicineArray = $request->medicine;
+            $oldordonancedetailsraw = Ordonance_Details::where('ordonance_id', $ordonance->id)->get();
+            log::info('zabahlowa', [$oldordonancedetailsraw]);
+            $session = operationsession::where('doctor_id', $doctorId)
+                ->where('operation_id', $request->operation_id)
+                ->first();
+
+            if ($session) {
+                $oldordonancedetails = [];
+                $newOrdonance = [];
+                foreach ($oldordonancedetailsraw as $ord) {
+                    $oldordonancedetails[] = [
+                        'medicine_name' => $ord['medicine_name'],
+                        'note' => $ord['note'],
+                    ];
+                }
+                foreach ($medicineArray as $newmedicin) {
+                    $newOrdonance[] = [
+                        'medicine_name' => $newmedicin['medicine_name'],
+                        'note' => $newmedicin['note'],
+                    ];
+                }
+                $updated = [];
+                Log::info('SEEX', [$oldordonancedetails, $newOrdonance]);
+                foreach ($newOrdonance as $itemA) {
+                    $found = false;
+                    foreach ($oldordonancedetails as $itemB) {
+                        Log::info('vvv', [json_encode($itemA), json_encode($itemB)]);
+                        if (json_encode($itemA) === json_encode($itemB)) {
+                            $found = true;
+                            break;
+                        }
+                    }
+
+                    if (! $found) {
+                        $updated[] = $itemA;
+                    }
+                }
+
+                $newteeth = array_merge(json_decode($session->ordonqnces), [$updated]);
+
+                $session->update([
+                    'ordonqnces' => json_encode($newteeth)
+                ]);
+            }
+
+
             DB::beginTransaction();
 
             // Update the Ordonance record with the new data
@@ -137,7 +199,7 @@ class OrdonanceController extends Controller
             ]);
 
             // Validate and update OrdonanceDetails records
-            $medicineArray = $request->medicine;
+
 
             // Delete existing OrdonanceDetails records
             $ordonance->OrdonanceDetails()->delete();

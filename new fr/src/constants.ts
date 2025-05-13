@@ -26,6 +26,7 @@ export const CACHE_KEY_Agegroup = ["PatientsAgeGroup"];
 export const CACHE_KEY_Cachier = ["Cachier"];
 export const CACHE_KEY_OperationPref = ["OperationPref"];
 export const CACHE_KEY_TeethOperationPref = ["TeethOperationPref"];
+export const CACHE_KEY_operationSessionDetails = "operationSessionDetails";
 export const CACHE_KEY_CachierNumber = ["CachierNumber"];
 export const CACHE_KEY_totalPatients = ["totalPatients"];
 export const CACHE_KEY_AppointmentsKpi = ["AppointmentsKpi"];
