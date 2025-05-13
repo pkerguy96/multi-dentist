@@ -24,4 +24,7 @@ export const StoreOpappointmentAPIClient = new APIClient<Appointments>(
 export const paginatedAppointmentApiClient = new APIClient<Appointments>(
   "/GetAppointmentPagated"
 );
+export const operationAppointmentStep = new APIClient<any>(
+  "/getOpertionAppointment"
+);
 export default appointmentAPIClient;

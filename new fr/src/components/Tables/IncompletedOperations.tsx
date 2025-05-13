@@ -25,6 +25,13 @@ const IncompletedOperations = () => {
       },
     },
     {
+      name: "patient_id",
+      label: "Id",
+      options: {
+        display: false,
+      },
+    },
+    {
       name: "name",
       label: "Nom complet",
       options: {
@@ -78,9 +85,11 @@ const IncompletedOperations = () => {
       undefined
     );
   const handleRowClick = (rowData: any) => {
+    console.log(rowData, 100);
+
     const data = {
       operation_id: rowData[0],
-      patient_id: rowData[5],
+      patient_id: rowData[1],
     };
     console.log(data);
 

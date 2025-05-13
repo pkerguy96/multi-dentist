@@ -18,6 +18,7 @@ import { operationSessionDetails } from "../services/OperationDetailsService";
 import LoadingSpinner from "./LoadingSpinner";
 import getGlobalById from "../hooks/getGlobalById";
 import React, { useMemo } from "react";
+import EventAvailableOutlinedIcon from "@mui/icons-material/EventAvailableOutlined";
 const OperationSessions = ({ onClose, open, operation }) => {
   const { operation_id, patient_id } = operation;
 
@@ -97,7 +98,7 @@ const OperationSessions = ({ onClose, open, operation }) => {
           </Box>
         ) : (
           <>
-            <Box className="flex justify-between w-full">
+            <Box className="flex flex-col lg:flex-row gap-4 lg:items-center justify-between w-full">
               <Box className="flex flex-col p-0 gap-0">
                 <h1 className="text-xl sm:text-3xl font-bold ">
                   Résumé du traitement
@@ -106,7 +107,13 @@ const OperationSessions = ({ onClose, open, operation }) => {
                   Suivi détaillé de traitement dentaire
                 </p>
               </Box>
-              <Box>
+              <Box className="flex items-stretch flex-wrap w-max gap-4 ">
+                <Button
+                  variant="outlined"
+                  startIcon={<EventAvailableOutlinedIcon />}
+                >
+                  Terminer
+                </Button>
                 <Button
                   type="submit"
                   variant="contained"
@@ -114,8 +121,15 @@ const OperationSessions = ({ onClose, open, operation }) => {
                   className="!px-2 !py-1 sm:!px-6 sm:!py-2 rounded-lg "
                   onClick={() => {
                     if (operation?.operation_id && operation?.patient_id) {
+                      const currentParams = new URLSearchParams(
+                        `?id=${operation.patient_id}&operation_id=${operation.operation_id}`
+                      );
+                      currentParams.set("isdone", "0");
                       navigate(
-                        `/Patients/operations/?id=${operation.patient_id}&operation_id=${operation.operation_id}`
+                        `/Patients/operations/?${currentParams.toString()}`,
+                        {
+                          replace: true,
+                        }
                       );
                     }
                   }}

@@ -16,7 +16,7 @@ import {
 import { AdapterMoment } from "@mui/x-date-pickers/AdapterMoment";
 import moment, { Moment } from "moment";
 import React, { useRef, useState } from "react";
-import { CACHE_KEY_PATIENTS } from "../../constants";
+import { CACHE_KEY_opappointment, CACHE_KEY_PATIENTS } from "../../constants";
 import getGlobalById from "../../hooks/getGlobalById";
 import patientAPIClient, {
   OnlyPatientData,
@@ -24,6 +24,7 @@ import patientAPIClient, {
 import addGlobal from "../../hooks/addGlobal";
 import appointmentAPIClient, {
   AppointmentPayload,
+  operationAppointmentStep,
   StoreOpappointmentAPIClient,
 } from "../../services/AppointmentService";
 import LoadingSpinner from "../../components/LoadingSpinner";
@@ -34,6 +35,7 @@ import { CliniquerensignementProps } from "../OperationPagesUpdated/Cliniquerens
 import KeyboardBackspaceOutlinedIcon from "@mui/icons-material/KeyboardBackspaceOutlined";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
+import CheckAction from "../../components/CheckAction";
 
 interface DataSend {
   patient_id: number;
@@ -48,13 +50,20 @@ const AppointmentStepPage: React.FC<CliniquerensignementProps> = ({
   const [appointments, setAppointments] = useState([
     { date: moment(), note: "" },
   ]);
-  const [selectedDateTime, setSelectedDateTime] = useState(moment());
   const location = useLocation();
   const navigate = useNavigate();
-
   const queryParams = new URLSearchParams(location.search);
   const patient_id = queryParams.get("id");
   const operation_id = queryParams.get("operation_id");
+  const { data: previousAppointments, isLoading: isLoading2 } = getGlobalById(
+    {} as any,
+    [CACHE_KEY_opappointment, operation_id],
+    operationAppointmentStep,
+    undefined,
+    parseInt(operation_id)
+  );
+  console.log(previousAppointments);
+
   const { showSnackbar } = useSnackbarStore();
   const noteRef = useRef<HTMLInputElement>(null);
   const dateTimePickerRef = useRef(null);
@@ -68,42 +77,21 @@ const AppointmentStepPage: React.FC<CliniquerensignementProps> = ({
     undefined,
     parseInt(patient_id)
   );
-  console.log(data);
+  console.log(data, 20000);
 
   const Addmutation = addGlobal(
     {} as AppointmentPayload,
     StoreOpappointmentAPIClient
   );
-  if (isLoading) return <LoadingSpinner />;
 
-  const handleDateTimeChange = (
-    value: Moment | null,
-    _context: PickerChangeHandlerContext<DateTimeValidationError>
-  ) => {
-    if (value !== null) {
-      setSelectedDateTime(value);
-    } else {
-      return;
-    }
-  };
   const onsubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    /*  // Frontend validation for the date field
-    if (!selectedDateTime) {
-      showSnackbar("Veuillez sélectionner une date.", "error");
-      return;
-    } */
     for (const appt of appointments) {
       if (!appt.date) {
         showSnackbar("Veuillez remplir toutes les dates.", "error");
         return;
       }
-      /* var formData: DataSend = {
-        patient_id: parseInt(patient_id),
-        date: appt.date.format("YYYY-MM-DDTHH:mm:ss"),
-        note: appt.note,
-      }; */
     }
 
     const formData = {
@@ -134,7 +122,15 @@ const AppointmentStepPage: React.FC<CliniquerensignementProps> = ({
       },
     });
   };
-
+  CheckAction(() => {
+    setAppointments(
+      previousAppointments.map((rendez) => ({
+        date: moment(rendez.date),
+        note: rendez.note ?? "",
+      }))
+    );
+  }, previousAppointments);
+  if (isLoading || isLoading2) return <LoadingSpinner />;
   return (
     <div>
       <Paper className="!p-6 w-full flex flex-col gap-6">

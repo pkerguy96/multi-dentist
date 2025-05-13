@@ -128,6 +128,7 @@ Route::group(['prefix' => 'v1', 'namespace' => 'App\Http\Controllers\API\V1', 'm
     Route::post('insertWihtoutxray', [XrayController::class, 'insertWihtoutxray']);
     Route::get('GetAppointmentPagated', [AppointmentController::class, 'GetAppointmentPagated']);
     Route::get('GetOpAppointments/{id}', [AppointmentController::class, 'GetOpAppointments']);
+    Route::get('getOpertionAppointment/{id}', [AppointmentController::class, 'getOpertionAppointment']);
     Route::post('storeMultipleForOperation', [AppointmentController::class, 'storeMultipleForOperation']);
 
 

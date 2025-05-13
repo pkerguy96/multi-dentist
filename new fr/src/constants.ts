@@ -6,6 +6,7 @@ export const CACHE_KEY_userLocation = ["userLocation"];
 export const CACHE_KEY_getDoctorFiles = "getDoctorFiles";
 export const CACHE_KEY_OpDetails = ["OpDetails"];
 export const CACHE_KEY_Opnote = "Opnote";
+export const CACHE_KEY_opappointment = "getOpertionAppointment";
 
 export const CACHE_KEY_PATIENTS = ["patients"]; /*  */
 export const CACHE_KEY_PatientsWaitingRoom = ["PatientCounterWaitingroom"];

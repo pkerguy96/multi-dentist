@@ -329,4 +329,15 @@ class AppointmentController extends Controller
             ], 422);
         }
     }
+
+    public function getOpertionAppointment($operation){
+
+        $doctorId = $this->checkUserRole();
+        try {
+           $data = Appointment::where('doctor_id',$doctorId)->where('operation_id',$operation)->select('id','date','note')->get();
+           return $this->success($data,'success',200);
+        } catch (\Throwable $th) {
+            return $this->error(null, $th->getMessage(), 500);
+        }
+    }
 }

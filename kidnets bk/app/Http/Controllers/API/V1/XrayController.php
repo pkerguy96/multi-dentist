@@ -151,7 +151,7 @@ class XrayController extends Controller
 
             $operation = Operation::where('doctor_id', $doctorId)->where('id', $id)->firstOrFail(); // Fetch the operation to adjust total_cost
             $existingXrays = operation_detail::where('operation_id', $id)->get(); // Fetch existing x-rays for the operation
-            $extraoperations = OperationExtra::where('operation_id', $id)->get();
+             OperationExtra::where('operation_id', $id)->delete();
 
 
             // Step 3: Identify deleted, new, and updated x-rays
@@ -212,7 +212,7 @@ class XrayController extends Controller
             }
             $operation->save(); // Save the updated operation details
 
-            $waiting =   WaitingRoom::where('doctor_id', $doctorId)->where('patient_id', $request->patient_id)->firstOrFail();
+            $waiting =   WaitingRoom::where('doctor_id', $doctorId)->where('patient_id', $request->patient_id)->first();
             if ($waiting) {
                 $waiting->update([
                     'status' => 'completed'
